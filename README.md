@@ -4,22 +4,22 @@ Color folders and files in the file explorer from the context menu. Manage your 
 
 ## Features
 
-- **Color from the context menu**: right-click a file or folder and select **Set color**. Works with several selected items at once.
+- **Color from the context menu**: right-click a file or folder and select **Colorize**. Works with several selected items at once.
 - **Palette**: define named colors in the settings. Changing a palette color updates every file and folder that uses it.
 - **Style**: color the name, the background of the row, or both, with adjustable background strength.
 - **Color folder contents**: files and subfolders inside a colored folder can take its color, unless they have their own.
 - **Follows your files**: colors move along when you rename or move files and folders, including everything inside a moved folder.
 - **Export and import**: save your colors to a JSON file inside your vault, load them again, copy them to the clipboard or paste them from JSON.
 - **Import from File Color**: take over the palette and colors of the File Color plugin.
-- **Command**: set the color of the current file from the command palette.
+- **Command**: colorize the current file from the command palette.
 
 ## Usage
 
 1. Right-click a file or folder in the file explorer.
-2. Select **Set color**.
+2. Select **Colorize**.
 3. Pick a color, or **No color** to remove it.
 
-To color several items, select them with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> or <kbd>Shift</kbd>, right-click and select **Set color for n items**.
+To color several items, select them with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> or <kbd>Shift</kbd>, right-click and select **Colorize n items**.
 
 ## Settings
 

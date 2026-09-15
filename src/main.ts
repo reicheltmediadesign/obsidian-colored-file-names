@@ -34,7 +34,7 @@ export default class ColoredFileNamesPlugin extends Plugin {
         if (isVaultRoot(file)) return;
         menu.addItem((item) =>
           item
-            .setTitle("Set color")
+            .setTitle("Colorize")
             .setIcon("palette")
             .onClick(() => this.openColorModal([file])),
         );
@@ -47,7 +47,7 @@ export default class ColoredFileNamesPlugin extends Plugin {
         if (targets.length === 0) return;
         menu.addItem((item) =>
           item
-            .setTitle(`Set color for ${targets.length} items`)
+            .setTitle(`Colorize ${targets.length} items`)
             .setIcon("palette")
             .onClick(() => this.openColorModal(targets)),
         );
@@ -55,8 +55,8 @@ export default class ColoredFileNamesPlugin extends Plugin {
     );
 
     this.addCommand({
-      id: "set-color-of-current-file",
-      name: "Set color of current file",
+      id: "colorize-current-file",
+      name: "Colorize current file",
       checkCallback: (checking) => {
         const file = this.app.workspace.getActiveFile();
         if (!file) return false;
