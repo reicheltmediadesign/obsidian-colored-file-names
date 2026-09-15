@@ -1,0 +1,71 @@
+/* Colored File Names
+ *
+ * A colored item (.tree-item) gets .cfn-colored and the custom property
+ * --cfn-color. Colored folders additionally get .cfn-cascade when
+ * "Color folder contents" is on. The file explorer container gets
+ * .cfn-style-text, .cfn-style-background or .cfn-style-both.
+ */
+
+/* Text */
+.cfn-style-text .cfn-colored > .tree-item-self,
+.cfn-style-text .cfn-cascade .tree-item-self,
+.cfn-style-both .cfn-colored > .tree-item-self,
+.cfn-style-both .cfn-cascade .tree-item-self {
+  color: var(--cfn-color);
+}
+
+.cfn-style-text .cfn-colored > .tree-item-self .tree-item-icon,
+.cfn-style-text .cfn-cascade .tree-item-self .tree-item-icon,
+.cfn-style-both .cfn-colored > .tree-item-self .tree-item-icon,
+.cfn-style-both .cfn-cascade .tree-item-self .tree-item-icon {
+  color: inherit;
+}
+
+/* Background */
+.cfn-style-background .cfn-colored > .tree-item-self:not(.is-active),
+.cfn-style-background .cfn-cascade .tree-item-self:not(.is-active),
+.cfn-style-both .cfn-colored > .tree-item-self:not(.is-active),
+.cfn-style-both .cfn-cascade .tree-item-self:not(.is-active) {
+  background-color: color-mix(in srgb, var(--cfn-color) var(--cfn-background-opacity, 15%), transparent);
+}
+
+/* Color picker */
+.cfn-suggestion {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+}
+
+.cfn-swatch {
+  flex: none;
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  background-color: var(--cfn-color);
+  border: 1px solid var(--background-modifier-border);
+}
+
+.cfn-swatch-none {
+  background: linear-gradient(
+    to top right,
+    transparent calc(50% - 1px),
+    var(--text-muted) 50%,
+    transparent calc(50% + 1px)
+  );
+}
+
+.cfn-suggestion-name {
+  flex: 1;
+}
+
+.cfn-suggestion-current {
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.cfn-import-input {
+  width: 100%;
+  min-height: 14em;
+  font-family: var(--font-monospace);
+  font-size: var(--font-smaller);
+}
