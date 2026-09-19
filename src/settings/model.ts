@@ -14,14 +14,15 @@ export interface ColorAssignment {
   path: string;
   /** Id of a palette color. */
   colorId: string;
+  /** Color everything inside the folder as well, unless it has its own color. Only set for folders. */
+  recursive?: boolean;
 }
 
 export interface PluginSettings {
   palette: PaletteColor[];
   assignments: ColorAssignment[];
-  style: ColorStyle;
-  /** Color the contents of a colored folder as well. */
-  cascade: boolean;
+  folderStyle: ColorStyle;
+  fileStyle: ColorStyle;
   /** Background strength in percent. */
   backgroundOpacity: number;
   /** Vault path of the JSON file used for export and import. */
@@ -31,11 +32,11 @@ export interface PluginSettings {
 /** Portable export format. */
 export interface ExportData {
   plugin: "colored-file-names";
-  version: 1;
+  version: 3;
   palette: PaletteColor[];
   assignments: ColorAssignment[];
-  style: ColorStyle;
-  cascade: boolean;
+  folderStyle: ColorStyle;
+  fileStyle: ColorStyle;
   backgroundOpacity: number;
 }
 
@@ -56,8 +57,8 @@ export function defaultSettings(): PluginSettings {
       { id: "purple", name: "Purple", value: "#9c36b5" },
     ],
     assignments: [],
-    style: "text",
-    cascade: false,
+    folderStyle: "text",
+    fileStyle: "text",
     backgroundOpacity: 15,
     settingsFile: "colored-file-names.json",
   };
@@ -73,6 +74,17 @@ export function isColorStyle(value: unknown): value is ColorStyle {
   return typeof value === "string" && (COLOR_STYLES as readonly string[]).includes(value);
 }
 
+export type Styles = Pick<PluginSettings, "folderStyle" | "fileStyle">;
+
+/** Reads the styles for folders and files. Older versions had a single style for both. */
+export function parseStyles(data: UnknownRecord): Partial<Styles> {
+  const legacy = isColorStyle(data.style) ? data.style : undefined;
+  return {
+    folderStyle: isColorStyle(data.folderStyle) ? data.folderStyle : legacy,
+    fileStyle: isColorStyle(data.fileStyle) ? data.fileStyle : legacy,
+  };
+}
+
 export function parsePaletteColor(data: unknown): PaletteColor | null {
   if (!isRecord(data) || typeof data.value !== "string" || !HEX_COLOR.test(data.value)) return null;
   return {
@@ -85,7 +97,17 @@ export function parsePaletteColor(data: unknown): PaletteColor | null {
 export function parseAssignment(data: unknown): ColorAssignment | null {
   if (!isRecord(data) || typeof data.path !== "string" || data.path === "") return null;
   const colorId = typeof data.colorId === "string" ? data.colorId : data.color;
-  return typeof colorId === "string" && colorId !== "" ? { path: data.path, colorId } : null;
+  if (typeof colorId !== "string" || colorId === "") return null;
+  return data.recursive === true ? { path: data.path, colorId, recursive: true } : { path: data.path, colorId };
+}
+
+/**
+ * Older versions and File Color had a single option that colored the contents of all
+ * colored folders. It is carried over to every assignment; on files the flag has no effect.
+ */
+export function applyLegacyCascade(assignments: ColorAssignment[], cascade: unknown): void {
+  if (cascade !== true) return;
+  for (const assignment of assignments) assignment.recursive = true;
 }
 
 function parseOpacity(value: unknown, fallback: number): number {
@@ -125,12 +147,14 @@ export function parseSettings(data: unknown): PluginSettings {
         (a) => a.path,
       )
     : [];
+  applyLegacyCascade(assignments, data.cascade);
+  const styles = parseStyles(data);
 
   return {
     palette,
     assignments: withoutOrphans(assignments, palette),
-    style: isColorStyle(data.style) ? data.style : defaults.style,
-    cascade: typeof data.cascade === "boolean" ? data.cascade : defaults.cascade,
+    folderStyle: styles.folderStyle ?? defaults.folderStyle,
+    fileStyle: styles.fileStyle ?? defaults.fileStyle,
     backgroundOpacity: parseOpacity(data.backgroundOpacity, defaults.backgroundOpacity),
     settingsFile: typeof data.settingsFile === "string" && data.settingsFile !== "" ? data.settingsFile : defaults.settingsFile,
   };
@@ -139,11 +163,11 @@ export function parseSettings(data: unknown): PluginSettings {
 export function toExportData(settings: PluginSettings): ExportData {
   return {
     plugin: "colored-file-names",
-    version: 1,
+    version: 3,
     palette: settings.palette,
     assignments: settings.assignments,
-    style: settings.style,
-    cascade: settings.cascade,
+    folderStyle: settings.folderStyle,
+    fileStyle: settings.fileStyle,
     backgroundOpacity: settings.backgroundOpacity,
   };
 }

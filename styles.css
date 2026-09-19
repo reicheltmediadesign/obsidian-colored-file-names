@@ -1,31 +1,31 @@
 /* Colored File Names
  *
  * A colored item (.tree-item) gets .cfn-colored and the custom property
- * --cfn-color. Colored folders additionally get .cfn-cascade when
- * "Color folder contents" is on. The file explorer container gets
- * .cfn-style-text, .cfn-style-background or .cfn-style-both.
+ * --cfn-color. Items that take the color of a recursively colored folder
+ * additionally get .cfn-inherited, the recursively colored folder itself
+ * gets .cfn-cascade. The file explorer container gets
+ * .cfn-folder-style-<style> and .cfn-file-style-<style>, where <style> is
+ * text, background or both.
  */
 
 /* Text */
-.cfn-style-text .cfn-colored > .tree-item-self,
-.cfn-style-text .cfn-cascade .tree-item-self,
-.cfn-style-both .cfn-colored > .tree-item-self,
-.cfn-style-both .cfn-cascade .tree-item-self {
+.cfn-folder-style-text .nav-folder.cfn-colored > .tree-item-self,
+.cfn-folder-style-both .nav-folder.cfn-colored > .tree-item-self,
+.cfn-file-style-text .nav-file.cfn-colored > .tree-item-self,
+.cfn-file-style-both .nav-file.cfn-colored > .tree-item-self {
   color: var(--cfn-color);
 }
 
-.cfn-style-text .cfn-colored > .tree-item-self .tree-item-icon,
-.cfn-style-text .cfn-cascade .tree-item-self .tree-item-icon,
-.cfn-style-both .cfn-colored > .tree-item-self .tree-item-icon,
-.cfn-style-both .cfn-cascade .tree-item-self .tree-item-icon {
+.cfn-folder-style-text .nav-folder.cfn-colored > .tree-item-self .tree-item-icon,
+.cfn-folder-style-both .nav-folder.cfn-colored > .tree-item-self .tree-item-icon {
   color: inherit;
 }
 
 /* Background */
-.cfn-style-background .cfn-colored > .tree-item-self:not(.is-active),
-.cfn-style-background .cfn-cascade .tree-item-self:not(.is-active),
-.cfn-style-both .cfn-colored > .tree-item-self:not(.is-active),
-.cfn-style-both .cfn-cascade .tree-item-self:not(.is-active) {
+.cfn-folder-style-background .nav-folder.cfn-colored > .tree-item-self:not(.is-active),
+.cfn-folder-style-both .nav-folder.cfn-colored > .tree-item-self:not(.is-active),
+.cfn-file-style-background .nav-file.cfn-colored > .tree-item-self:not(.is-active),
+.cfn-file-style-both .nav-file.cfn-colored > .tree-item-self:not(.is-active) {
   background-color: color-mix(in srgb, var(--cfn-color) var(--cfn-background-opacity, 15%), transparent);
 }
 
@@ -56,6 +56,19 @@
 
 .cfn-suggestion-name {
   flex: 1;
+}
+
+.cfn-recursive {
+  display: flex;
+  align-items: center;
+  gap: var(--size-4-2);
+  padding: var(--size-4-2) var(--size-4-3);
+  border-bottom: 1px solid var(--background-modifier-border);
+  font-size: var(--font-ui-small);
+}
+
+.cfn-recursive.is-disabled {
+  color: var(--text-faint);
 }
 
 .cfn-suggestion-current {

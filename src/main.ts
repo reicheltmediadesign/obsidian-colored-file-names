@@ -1,9 +1,15 @@
 import { normalizePath, Notice, Plugin, type TAbstractFile, TFolder } from "obsidian";
 import { ColorModal } from "./color-modal";
-import { ExplorerColorizer } from "./explorer";
+import { ExplorerColorizer, type ResolvedColor } from "./explorer";
 import { removePaths, renamePaths } from "./paths";
 import { type ImportedColors, mergeInto, parseImport, replaceWith } from "./settings/import";
-import { defaultSettings, parseSettings, type PluginSettings, toExportData } from "./settings/model";
+import {
+  type ColorAssignment,
+  defaultSettings,
+  parseSettings,
+  type PluginSettings,
+  toExportData,
+} from "./settings/model";
 import { ColoredFileNamesSettingTab } from "./settings/settings-tab";
 
 const FILE_COLOR_ID = "obsidian-file-color";
@@ -13,7 +19,7 @@ export default class ColoredFileNamesPlugin extends Plugin {
   /** Path of the File Color configuration, if that plugin is installed. */
   fileColorDataPath: string | null = null;
 
-  private colorsByPath = new Map<string, string>();
+  private colorsByPath = new Map<string, ResolvedColor>();
   private settingTab!: ColoredFileNamesSettingTab;
   private explorer!: ExplorerColorizer;
 
@@ -23,8 +29,8 @@ export default class ColoredFileNamesPlugin extends Plugin {
 
     this.explorer = new ExplorerColorizer(this.app.workspace, () => ({
       colors: this.colorsByPath,
-      style: this.settings.style,
-      cascade: this.settings.cascade,
+      folderStyle: this.settings.folderStyle,
+      fileStyle: this.settings.fileStyle,
       backgroundOpacity: this.settings.backgroundOpacity,
     }));
     this.register(() => this.explorer.detach());
@@ -181,32 +187,41 @@ export default class ColoredFileNamesPlugin extends Plugin {
   }
 
   private openColorModal(files: TAbstractFile[]): void {
-    const current = files.length === 1 ? this.colorIdOf(files[0].path) : null;
+    const current = files.length === 1 ? (this.assignmentOf(files[0].path)?.colorId ?? null) : null;
     const label = files.length === 1 ? files[0].name : `${files.length} items`;
-    new ColorModal(this.app, this.settings.palette, current, label, (colorId) => {
-      void this.setColor(files, colorId);
+    const folders = files.filter((file) => file instanceof TFolder);
+    const recursive = {
+      available: folders.length > 0,
+      checked: folders.length > 0 && folders.every((folder) => this.assignmentOf(folder.path)?.recursive === true),
+    };
+    new ColorModal(this.app, this.settings.palette, current, label, recursive, (colorId, isRecursive) => {
+      void this.setColor(files, colorId, isRecursive);
     }).open();
   }
 
-  private async setColor(files: TAbstractFile[], colorId: string | null): Promise<void> {
+  private async setColor(files: TAbstractFile[], colorId: string | null, recursive: boolean): Promise<void> {
     const paths = new Set(files.map((file) => file.path));
     this.settings.assignments = this.settings.assignments.filter((assignment) => !paths.has(assignment.path));
     if (colorId !== null) {
-      for (const path of paths) this.settings.assignments.push({ path, colorId });
+      for (const file of files) {
+        const assignment: ColorAssignment = { path: file.path, colorId };
+        if (recursive && file instanceof TFolder) assignment.recursive = true;
+        this.settings.assignments.push(assignment);
+      }
     }
     await this.saveSettings();
   }
 
-  private colorIdOf(path: string): string | null {
-    return this.settings.assignments.find((assignment) => assignment.path === path)?.colorId ?? null;
+  private assignmentOf(path: string): ColorAssignment | undefined {
+    return this.settings.assignments.find((assignment) => assignment.path === path);
   }
 
   private updateColorMap(): void {
     const values = new Map(this.settings.palette.map((color) => [color.id, color.value]));
     this.colorsByPath = new Map();
-    for (const { path, colorId } of this.settings.assignments) {
+    for (const { path, colorId, recursive } of this.settings.assignments) {
       const value = values.get(colorId);
-      if (value) this.colorsByPath.set(path, value);
+      if (value) this.colorsByPath.set(path, { value, recursive: recursive === true });
     }
   }
 

@@ -1,15 +1,15 @@
 import { type App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
 import type ColoredFileNamesPlugin from "../main";
 import { ImportModal } from "./import-modal";
-import { createId, type PluginSettings } from "./model";
+import { type ColorStyle, createId, isColorStyle } from "./model";
 
-const STYLE_OPTIONS: Record<PluginSettings["style"], string> = {
+const STYLE_OPTIONS: Record<ColorStyle, string> = {
   text: "Text",
   background: "Background",
   both: "Text and background",
 };
 
-type ControlKey = "style" | "cascade" | "backgroundOpacity" | "settingsFile";
+type ControlKey = "folderStyle" | "fileStyle" | "backgroundOpacity" | "settingsFile";
 
 export class ColoredFileNamesSettingTab extends PluginSettingTab {
   private readonly plugin: ColoredFileNamesPlugin;
@@ -30,20 +30,20 @@ export class ColoredFileNamesSettingTab extends PluginSettingTab {
         heading: "Appearance",
         items: [
           {
-            name: "Style",
-            desc: "Color the name, the background of the row, or both.",
-            control: { type: "dropdown", key: "style", options: STYLE_OPTIONS },
+            name: "Folder style",
+            desc: "Color the name of folders, the background of the row, or both.",
+            control: { type: "dropdown", key: "folderStyle", options: STYLE_OPTIONS },
+          },
+          {
+            name: "File style",
+            desc: "Color the name of files, the background of the row, or both.",
+            control: { type: "dropdown", key: "fileStyle", options: STYLE_OPTIONS },
           },
           {
             name: "Background strength",
             desc: "Opacity of the background color in percent.",
-            visible: () => settings.style !== "text",
+            visible: () => settings.folderStyle !== "text" || settings.fileStyle !== "text",
             control: { type: "slider", key: "backgroundOpacity", min: 5, max: 60, step: 5 },
-          },
-          {
-            name: "Color folder contents",
-            desc: "Files and subfolders inside a colored folder take its color, unless they have their own.",
-            control: { type: "toggle", key: "cascade" },
           },
         ],
       },
@@ -110,7 +110,7 @@ export class ColoredFileNamesSettingTab extends PluginSettingTab {
             },
             items: settings.assignments.map((assignment) => ({
               name: assignment.path,
-              desc: colorName(assignment.colorId),
+              desc: assignment.recursive ? `${colorName(assignment.colorId)}, recursive` : colorName(assignment.colorId),
             })),
           },
         ],
@@ -167,12 +167,10 @@ export class ColoredFileNamesSettingTab extends PluginSettingTab {
   async setControlValue(key: string, value: unknown): Promise<void> {
     const { settings } = this.plugin;
     switch (key as ControlKey) {
-      case "style":
-        if (value === "text" || value === "background" || value === "both") settings.style = value;
+      case "folderStyle":
+      case "fileStyle":
+        if (isColorStyle(value)) settings[key as "folderStyle" | "fileStyle"] = value;
         this.refreshDomState();
-        break;
-      case "cascade":
-        if (typeof value === "boolean") settings.cascade = value;
         break;
       case "backgroundOpacity":
         if (typeof value === "number") settings.backgroundOpacity = value;
