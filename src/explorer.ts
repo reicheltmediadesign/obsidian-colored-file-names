@@ -1,9 +1,8 @@
 import { debounce, type Workspace } from "obsidian";
 import { COLOR_STYLES, type ColorStyle } from "./settings/model";
+import type { ThemeColors } from "./theme-colors";
 
-export interface ResolvedColor {
-  /** Hex color. */
-  value: string;
+export interface ResolvedColor extends ThemeColors {
   recursive: boolean;
 }
 
@@ -12,13 +11,16 @@ export interface ExplorerAppearance {
   colors: ReadonlyMap<string, ResolvedColor>;
   folderStyle: ColorStyle;
   fileStyle: ColorStyle;
+  boldFolders: boolean;
   backgroundOpacity: number;
 }
 
 const TITLE_SELECTOR = ".nav-file-title[data-path], .nav-folder-title[data-path]";
 const ITEM_CLASSES = ["cfn-colored", "cfn-inherited", "cfn-cascade"];
+const EMPTY_COLOR_PROPS = { "--cfn-color-light": "", "--cfn-color-dark": "", "--cfn-text-light": "", "--cfn-text-dark": "" };
 const CONTAINER_CLASSES = [
   "cfn-explorer",
+  "cfn-bold-folders",
   ...COLOR_STYLES.flatMap((style) => [`cfn-folder-style-${style}`, `cfn-file-style-${style}`]),
 ];
 
@@ -68,6 +70,7 @@ export class ExplorerColorizer {
         `cfn-folder-style-${appearance.folderStyle}`,
         `cfn-file-style-${appearance.fileStyle}`,
       ]);
+      container.toggleClass("cfn-bold-folders", appearance.boldFolders);
       container.setCssProps({ "--cfn-background-opacity": `${appearance.backgroundOpacity}%` });
 
       container.querySelectorAll<HTMLElement>(TITLE_SELECTOR).forEach((title) => applyToTitle(title, appearance));
@@ -83,7 +86,7 @@ export class ExplorerColorizer {
       container.querySelectorAll<HTMLElement>(TITLE_SELECTOR).forEach((title) => {
         const item = title.parentElement;
         item?.removeClasses(ITEM_CLASSES);
-        item?.setCssProps({ "--cfn-color": "" });
+        item?.setCssProps(EMPTY_COLOR_PROPS);
       });
     }
     this.observers.clear();
@@ -96,20 +99,29 @@ function applyToTitle(title: HTMLElement, appearance: ExplorerAppearance): void 
   if (!item || path === null) return;
 
   const own = appearance.colors.get(path);
-  const color = own?.value ?? inheritedColor(path, appearance.colors);
+  const color = own ?? inheritedColor(path, appearance.colors);
   const isFolder = title.hasClass("nav-folder-title");
 
   item.toggleClass("cfn-colored", color !== undefined);
   item.toggleClass("cfn-inherited", own === undefined && color !== undefined);
   item.toggleClass("cfn-cascade", own?.recursive === true && isFolder);
-  item.setCssProps({ "--cfn-color": color ?? "" });
+  item.setCssProps(
+    color
+      ? {
+          "--cfn-color-light": color.light,
+          "--cfn-color-dark": color.dark,
+          "--cfn-text-light": color.textLight,
+          "--cfn-text-dark": color.textDark,
+        }
+      : EMPTY_COLOR_PROPS,
+  );
 }
 
 /** Color of the closest ancestor folder that is colored recursively. */
-function inheritedColor(path: string, colors: ReadonlyMap<string, ResolvedColor>): string | undefined {
+function inheritedColor(path: string, colors: ReadonlyMap<string, ResolvedColor>): ResolvedColor | undefined {
   for (let index = path.lastIndexOf("/"); index > 0; index = path.lastIndexOf("/", index - 1)) {
     const ancestor = colors.get(path.slice(0, index));
-    if (ancestor?.recursive) return ancestor.value;
+    if (ancestor?.recursive) return ancestor;
   }
   return undefined;
 }

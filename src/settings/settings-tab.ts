@@ -1,7 +1,14 @@
-import { type App, PluginSettingTab, type SettingDefinitionItem } from "obsidian";
+import {
+  type App,
+  type ColorComponent,
+  type ExtraButtonComponent,
+  PluginSettingTab,
+  type SettingDefinitionItem,
+  setTooltip,
+} from "obsidian";
 import type ColoredFileNamesPlugin from "../main";
 import { ImportModal } from "./import-modal";
-import { type ColorStyle, createId, isColorStyle } from "./model";
+import { type ColorStyle, createId, isColorStyle, type PaletteColor } from "./model";
 
 const STYLE_OPTIONS: Record<ColorStyle, string> = {
   text: "Text",
@@ -9,7 +16,7 @@ const STYLE_OPTIONS: Record<ColorStyle, string> = {
   both: "Text and background",
 };
 
-type ControlKey = "folderStyle" | "fileStyle" | "backgroundOpacity" | "settingsFile";
+type ControlKey = "folderStyle" | "fileStyle" | "boldFolders" | "adjustColors" | "backgroundOpacity" | "settingsFile";
 
 export class ColoredFileNamesSettingTab extends PluginSettingTab {
   private readonly plugin: ColoredFileNamesPlugin;
@@ -40,6 +47,17 @@ export class ColoredFileNamesSettingTab extends PluginSettingTab {
             control: { type: "dropdown", key: "fileStyle", options: STYLE_OPTIONS },
           },
           {
+            name: "Bold folder names",
+            desc: "Show the names of colored folders in bold.",
+            control: { type: "toggle", key: "boldFolders" },
+          },
+          {
+            name: "Readable text colors",
+            desc: "Darken or lighten colored names where needed so that they stay readable in light and dark themes. Palette colors with their own dark mode color are used as they are in dark themes.",
+            visible: () => settings.folderStyle !== "background" || settings.fileStyle !== "background",
+            control: { type: "toggle", key: "adjustColors" },
+          },
+          {
             name: "Background strength",
             desc: "Opacity of the background color in percent.",
             visible: () => settings.folderStyle !== "text" || settings.fileStyle !== "text",
@@ -50,6 +68,14 @@ export class ColoredFileNamesSettingTab extends PluginSettingTab {
       {
         type: "list",
         heading: "Palette",
+        extraButtons: [
+          (button) =>
+            button
+              .setIcon("info")
+              .setTooltip(
+                "The second color is used in dark mode. Removing a color also removes it from all files and folders.",
+              ),
+        ],
         emptyState: "No colors yet. Add a color to use it in the context menu of the file explorer.",
         addItem: {
           name: "Add color",
@@ -70,8 +96,15 @@ export class ColoredFileNamesSettingTab extends PluginSettingTab {
         },
         items: settings.palette.map((color) => ({
           name: color.name || color.value,
-          desc: "Removing a color also removes it from all files and folders.",
+          desc: paletteColorDesc(color),
           render: (setting) => {
+            let darkPicker: ColorComponent | undefined;
+            let resetButton: ExtraButtonComponent | undefined;
+            const refresh = (): void => {
+              setting.setDesc(paletteColorDesc(color));
+              resetButton?.setDisabled(color.darkValue === undefined);
+            };
+
             setting
               .addText((text) =>
                 text
@@ -85,9 +118,35 @@ export class ColoredFileNamesSettingTab extends PluginSettingTab {
               .addColorPicker((picker) =>
                 picker.setValue(color.value).onChange(async (value) => {
                   color.value = value;
+                  if (color.darkValue === undefined) darkPicker?.setValue(value);
                   await this.plugin.saveSettings();
                 }),
-              );
+              )
+              .addColorPicker((picker) => {
+                darkPicker = picker.setValue(color.darkValue ?? color.value).onChange(async (value) => {
+                  color.darkValue = value;
+                  refresh();
+                  await this.plugin.saveSettings();
+                });
+              })
+              .addExtraButton((button) => {
+                resetButton = button
+                  .setIcon("rotate-ccw")
+                  .setTooltip("Use the same color in dark mode")
+                  .onClick(async () => {
+                    if (color.darkValue === undefined) return;
+                    delete color.darkValue;
+                    darkPicker?.setValue(color.value);
+                    refresh();
+                    await this.plugin.saveSettings();
+                  });
+              });
+
+            const pickers = setting.controlEl.querySelectorAll<HTMLElement>("input[type=color]");
+            const [lightInput, darkInput] = Array.from(pickers);
+            if (lightInput) setTooltip(lightInput, "Color");
+            if (darkInput) setTooltip(darkInput, "Color in dark mode");
+            refresh();
           },
         })),
       },
@@ -172,6 +231,10 @@ export class ColoredFileNamesSettingTab extends PluginSettingTab {
         if (isColorStyle(value)) settings[key as "folderStyle" | "fileStyle"] = value;
         this.refreshDomState();
         break;
+      case "boldFolders":
+      case "adjustColors":
+        if (typeof value === "boolean") settings[key as "boldFolders" | "adjustColors"] = value;
+        break;
       case "backgroundOpacity":
         if (typeof value === "number") settings.backgroundOpacity = value;
         break;
@@ -188,6 +251,10 @@ export class ColoredFileNamesSettingTab extends PluginSettingTab {
     await this.plugin.saveSettings();
     this.update();
   }
+}
+
+function paletteColorDesc(color: PaletteColor): string {
+  return color.darkValue === undefined ? "" : "Own color in dark mode.";
 }
 
 function validateJsonPath(value: string): string | undefined {

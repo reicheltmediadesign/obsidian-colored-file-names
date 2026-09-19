@@ -7,6 +7,8 @@ export interface PaletteColor {
   name: string;
   /** Hex color, e.g. #1971c2. */
   value: string;
+  /** Hex color used in dark themes instead of `value`. */
+  darkValue?: string;
 }
 
 export interface ColorAssignment {
@@ -23,6 +25,10 @@ export interface PluginSettings {
   assignments: ColorAssignment[];
   folderStyle: ColorStyle;
   fileStyle: ColorStyle;
+  /** Show the names of colored folders in bold. */
+  boldFolders: boolean;
+  /** Lighten or darken text colors that would be hard to read in the current theme. */
+  adjustColors: boolean;
   /** Background strength in percent. */
   backgroundOpacity: number;
   /** Vault path of the JSON file used for export and import. */
@@ -37,6 +43,8 @@ export interface ExportData {
   assignments: ColorAssignment[];
   folderStyle: ColorStyle;
   fileStyle: ColorStyle;
+  boldFolders: boolean;
+  adjustColors: boolean;
   backgroundOpacity: number;
 }
 
@@ -57,9 +65,11 @@ export function defaultSettings(): PluginSettings {
       { id: "purple", name: "Purple", value: "#9c36b5" },
     ],
     assignments: [],
-    folderStyle: "text",
-    fileStyle: "text",
-    backgroundOpacity: 15,
+    folderStyle: "both",
+    fileStyle: "background",
+    boldFolders: false,
+    adjustColors: true,
+    backgroundOpacity: 10,
     settingsFile: "colored-file-names.json",
   };
 }
@@ -87,11 +97,13 @@ export function parseStyles(data: UnknownRecord): Partial<Styles> {
 
 export function parsePaletteColor(data: unknown): PaletteColor | null {
   if (!isRecord(data) || typeof data.value !== "string" || !HEX_COLOR.test(data.value)) return null;
-  return {
+  const color: PaletteColor = {
     id: typeof data.id === "string" && data.id !== "" ? data.id : createId(),
     name: typeof data.name === "string" ? data.name : "",
     value: data.value.toLowerCase(),
   };
+  if (typeof data.darkValue === "string" && HEX_COLOR.test(data.darkValue)) color.darkValue = data.darkValue.toLowerCase();
+  return color;
 }
 
 export function parseAssignment(data: unknown): ColorAssignment | null {
@@ -155,6 +167,8 @@ export function parseSettings(data: unknown): PluginSettings {
     assignments: withoutOrphans(assignments, palette),
     folderStyle: styles.folderStyle ?? defaults.folderStyle,
     fileStyle: styles.fileStyle ?? defaults.fileStyle,
+    boldFolders: typeof data.boldFolders === "boolean" ? data.boldFolders : defaults.boldFolders,
+    adjustColors: typeof data.adjustColors === "boolean" ? data.adjustColors : defaults.adjustColors,
     backgroundOpacity: parseOpacity(data.backgroundOpacity, defaults.backgroundOpacity),
     settingsFile: typeof data.settingsFile === "string" && data.settingsFile !== "" ? data.settingsFile : defaults.settingsFile,
   };
@@ -168,6 +182,8 @@ export function toExportData(settings: PluginSettings): ExportData {
     assignments: settings.assignments,
     folderStyle: settings.folderStyle,
     fileStyle: settings.fileStyle,
+    boldFolders: settings.boldFolders,
+    adjustColors: settings.adjustColors,
     backgroundOpacity: settings.backgroundOpacity,
   };
 }

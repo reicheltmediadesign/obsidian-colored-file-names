@@ -15,6 +15,8 @@ export interface ImportedColors extends Partial<Styles> {
   source: "colored-file-names" | "file-color";
   palette: PaletteColor[];
   assignments: ColorAssignment[];
+  boldFolders?: boolean;
+  adjustColors?: boolean;
   backgroundOpacity?: number;
 }
 
@@ -41,6 +43,8 @@ export function parseImport(json: string): ImportedColors {
       palette,
       assignments: withoutOrphans(assignments, palette),
       ...parseStyles(data),
+      boldFolders: typeof data.boldFolders === "boolean" ? data.boldFolders : undefined,
+      adjustColors: typeof data.adjustColors === "boolean" ? data.adjustColors : undefined,
       backgroundOpacity: typeof data.backgroundOpacity === "number" ? data.backgroundOpacity : undefined,
     };
   }
@@ -80,6 +84,8 @@ export function mergeInto(settings: PluginSettings, imported: ImportedColors): v
     if (existing) {
       existing.name = color.name;
       existing.value = color.value;
+      if (color.darkValue) existing.darkValue = color.darkValue;
+      else delete existing.darkValue;
     } else {
       settings.palette.push(color);
     }
@@ -95,4 +101,6 @@ export function mergeInto(settings: PluginSettings, imported: ImportedColors): v
 function applyStyles(settings: PluginSettings, imported: ImportedColors): void {
   if (imported.folderStyle) settings.folderStyle = imported.folderStyle;
   if (imported.fileStyle) settings.fileStyle = imported.fileStyle;
+  if (imported.boldFolders !== undefined) settings.boldFolders = imported.boldFolders;
+  if (imported.adjustColors !== undefined) settings.adjustColors = imported.adjustColors;
 }

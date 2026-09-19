@@ -6,7 +6,8 @@ Color folders and files in the file explorer from the context menu. Manage your 
 
 - **Color from the context menu**: right-click a file or folder and select **Colorize**. Works with several selected items at once.
 - **Palette**: define named colors in the settings. Changing a palette color updates every file and folder that uses it.
-- **Style**: color the name, the background of the row, or both, with adjustable background strength. Folders and files have their own style, for example backgrounds for folders and colored names for files.
+- **Light and dark themes**: colored names are darkened or lightened where needed so that they stay readable in both themes. Optionally give a palette color its own color for dark themes.
+- **Style**: color the name, the background of the row, or both, with adjustable background strength. Folders and files have their own style, for example backgrounds for folders and colored names for files. Colored folder names can be shown in bold.
 - **Recursive folder colors**: per folder, choose whether files and subfolders inside take its color, unless they have their own.
 - **Follows your files**: colors move along when you rename or move files and folders, including everything inside a moved folder.
 - **Export and import**: save your colors to a JSON file inside your vault, load them again, copy them to the clipboard or paste them from JSON.
@@ -26,15 +27,19 @@ To color several items, select them with <kbd>Ctrl</kbd>/<kbd>Cmd</kbd> or <kbd>
 
 ### Appearance
 
-| Setting             | Description                                                  |
-| ------------------- | ------------------------------------------------------------ |
-| Folder style        | Text, background, or text and background for folders.        |
-| File style          | Text, background, or text and background for files.          |
-| Background strength | Opacity of the background color, 5 to 60 percent.            |
+| Setting             | Description                                           | Default             |
+| ------------------- | ----------------------------------------------------- | ------------------- |
+| Folder style        | Text, background, or text and background for folders. | Text and background |
+| File style          | Text, background, or text and background for files.   | Background          |
+| Bold folder names   | Show the names of colored folders in bold.            | Off                 |
+| Readable text colors | Darken or lighten colored names where needed so that they stay readable in light and dark themes. | On |
+| Background strength | Opacity of the background color, 5 to 60 percent.     | 10 percent          |
 
 ### Palette
 
 Add, rename, recolor, reorder and remove colors. The order is used in the color picker. Removing a color also removes it from all files and folders.
+
+Each color has a second color picker for dark themes. By default it matches the first one. Once you change it, the palette color uses that color in dark themes as it is, without adjusting it for readability. The reset button next to it goes back to the same color.
 
 ### Colored files and folders
 
@@ -67,12 +72,12 @@ Plugin settings are stored in the `.obsidian` folder, which many sync tools skip
 
 ## Styling with CSS snippets
 
-A colored item in the file explorer (`.tree-item`) gets the class `cfn-colored` and the custom property `--cfn-color`. Folders colored with **Recursive** get `cfn-cascade`, items that take the color of such a folder additionally get `cfn-inherited`. The file explorer gets `cfn-folder-style-<style>` and `cfn-file-style-<style>`, where `<style>` is `text`, `background` or `both`.
+A colored item in the file explorer (`.tree-item`) gets the class `cfn-colored` and the custom properties `--cfn-color` (the palette color for the current theme, used for backgrounds) and `--cfn-text-color` (the color of the name, adjusted for readability). Folders colored with **Recursive** get `cfn-cascade`, items that take the color of such a folder additionally get `cfn-inherited`. The file explorer gets `cfn-folder-style-<style>` and `cfn-file-style-<style>`, where `<style>` is `text`, `background` or `both`, and `cfn-bold-folders` when **Bold folder names** is on.
 
 ```css
-/* Bold names for colored items */
-.cfn-colored > .tree-item-self {
-  font-weight: var(--font-semibold);
+/* Italic names for items that take the color of a recursively colored folder */
+.cfn-inherited > .tree-item-self {
+  font-style: italic;
 }
 ```
 

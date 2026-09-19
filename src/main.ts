@@ -11,6 +11,7 @@ import {
   toExportData,
 } from "./settings/model";
 import { ColoredFileNamesSettingTab } from "./settings/settings-tab";
+import { themeColors } from "./theme-colors";
 
 const FILE_COLOR_ID = "obsidian-file-color";
 
@@ -31,6 +32,7 @@ export default class ColoredFileNamesPlugin extends Plugin {
       colors: this.colorsByPath,
       folderStyle: this.settings.folderStyle,
       fileStyle: this.settings.fileStyle,
+      boldFolders: this.settings.boldFolders,
       backgroundOpacity: this.settings.backgroundOpacity,
     }));
     this.register(() => this.explorer.detach());
@@ -217,11 +219,12 @@ export default class ColoredFileNamesPlugin extends Plugin {
   }
 
   private updateColorMap(): void {
-    const values = new Map(this.settings.palette.map((color) => [color.id, color.value]));
+    const { palette, adjustColors } = this.settings;
+    const colors = new Map(palette.map((color) => [color.id, themeColors(color, adjustColors)]));
     this.colorsByPath = new Map();
     for (const { path, colorId, recursive } of this.settings.assignments) {
-      const value = values.get(colorId);
-      if (value) this.colorsByPath.set(path, { value, recursive: recursive === true });
+      const color = colors.get(colorId);
+      if (color) this.colorsByPath.set(path, { ...color, recursive: recursive === true });
     }
   }
 
